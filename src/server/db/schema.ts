@@ -120,6 +120,7 @@ export const subscriptions = sqliteTable("subscriptions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   price: text("price").notNull(),
+  currency: text("currency").notNull().default("USD"),
   billingCycle: text("billing_cycle").notNull(),
   platform: text("platform").notNull(),
   userId: text("user_id")
@@ -162,10 +163,7 @@ export const subscriptionSelectSchema = createSelectSchema(subscriptions);
 export type subscriptionSelectType = z.infer<typeof subscriptionSelectSchema>;
 
 export const reminders = sqliteTable("reminders", {
-  id: text("id")
-    .notNull()
-    .primaryKey()
-    .$defaultFn(() => `reminder_${nanoid(12)}`),
+  id: integer("id").primaryKey({ autoIncrement: true }),
   subscriptionId: integer("subscription_id").notNull(),
   reminderDate: integer("reminder_date", {
     mode: "timestamp_ms",

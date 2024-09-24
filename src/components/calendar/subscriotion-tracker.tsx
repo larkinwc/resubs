@@ -41,32 +41,25 @@ export function SubscriptionTracker() {
 
   const queryClient = useQueryClient();
 
-  const { mutateAsync: addSubscriptionMutation, isPending } = useMutation({
+  const { mutateAsync: addSubscriptionMutation } = useMutation({
     mutationFn: (subscription: subscriptionInsertTypeWithoutUserId) =>
       addSubscriptions(subscription),
     onSuccess: () => {
+      console.log("Subscription added");
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
     },
   });
 
-  const addSubscription = async (
+  const addSubscriptionFunction = async (
     newSubscription: subscriptionInsertTypeWithoutUserId,
   ) => {
-    setSubscriptions([...subscriptions, newSubscription]);
-    toast.promise(
-      addSubscriptionMutation({
-        billingCycle: "monthly",
-        startDate: newSubscription.startDate,
-        name: newSubscription.name,
-        price: newSubscription.price.toString(),
-        platform: newSubscription.platform,
-      }),
-      {
-        loading: "Adding subscription...",
-        success: "Subscription added successfully!",
-        error: "Failed to add subscription",
-      },
-    );
+    // setSubscriptions([...subscriptions, newSubscription]);
+    console.log("newSubscription", newSubscription);
+    toast.promise(addSubscriptionMutation(newSubscription), {
+      loading: "Adding subscription...",
+      success: "Subscription added successfully!",
+      error: "Failed to add subscription",
+    });
   };
 
   const changeMonth = (increment: number) => {
@@ -79,7 +72,7 @@ export function SubscriptionTracker() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-3xl">
       <div className="flex justify-between sm:flex-row flex-col items-start gap-2 sm:items-center mb-2 sm:mb-6 sm:px-6">
         <CalendarHeader
           slideDirection={slideDirection}
@@ -87,7 +80,9 @@ export function SubscriptionTracker() {
           onPrevMonth={() => changeMonth(-1)}
           onNextMonth={() => changeMonth(1)}
         />
-        <AddSubscriptionDialog onAddSubscription={addSubscription} />
+        <div className="fixed bottom-4 right-16">
+          <AddSubscriptionDialog onAddSubscription={addSubscriptionFunction} />
+        </div>
       </div>
       <Card className="bg-background overflow-hidden shadow-none">
         <CardContent className="sm:p-6 p-1">

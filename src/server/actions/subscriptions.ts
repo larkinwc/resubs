@@ -11,10 +11,38 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/server/auth";
 import { google } from "googleapis";
 
+export async function addTestSubscription() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw new Error("You must be logged in to add a subscription");
+  }
+
+  const newSubscription = await db
+    .insert(subscriptions)
+    .values({
+      billingCycle: "MONTHLY",
+      name: "Test Subscription",
+      platform: "Spotify",
+      price: "10",
+      currency: "USD",
+      startDate: new Date(),
+      endDate: new Date(),
+      userId: session.user.id,
+    })
+    .returning()
+    .catch(console.error);
+
+  console.log("New subscription added:", newSubscription);
+
+  return newSubscription;
+}
+
 export async function addSubscriptions(
-  formData: subscriptionInsertTypeWithoutUserId,
+  formData: subscriptionInsertTypeWithoutUserId
 ) {
   const session = await auth();
+  console.log("session", session);
   if (!session) {
     throw new Error("You must be logged in to add a subscription");
   }
@@ -25,12 +53,26 @@ export async function addSubscriptions(
     throw new Error("You must be logged in to add a subscription");
   }
 
+  console.log("Form data:", formData);
+
   try {
     // Add subscription to database
-    const [newSubscription] = await db
+    const newSubscription = await db
       .insert(subscriptions)
-      .values({ ...formData, userId: session.user.id })
-      .returning();
+      .values({
+        billingCycle: formData.billingCycle,
+        name: formData.name,
+        platform: formData.platform,
+        price: formData.price,
+        currency: formData.currency,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        userId: session.user.id,
+      })
+      .returning()
+      .catch(console.error);
+
+    console.log("New subscription added:", newSubscription);
 
     // Add to Google Calendar if checkbox is checked
     // if (addToGoogleCalendar) {
@@ -77,7 +119,8 @@ export async function addSubscriptions(
     return { success: true, subscription: newSubscription };
   } catch (error) {
     console.error("Error adding subscription:", error);
-    return { success: false, error: "Failed to add subscription" };
+    throw error;
+    // return { success: false, error: "Failed to add subscription" };
   }
 }
 
@@ -98,4 +141,40 @@ export async function getAllSubscriptions() {
   });
 
   return allSubscriptions;
+}
+
+export async function deleteSubscription(id: number) {
+  const session = await auth();
+  if (!session) {
+    throw new Error("You must be logged in to delete a subscription");
+  }
+  if (!session.user) {
+    throw new Error("You must be logged in to delete a subscription");
+  }
+  if (!session.user.id) {
+    throw new Error("You must be logged in to delete a subscription");
+  }
+
+  await db.delete(subscriptions).where(eq(subscriptions.id, Number(id)));
+}
+
+export async function updateSubscription(
+  id: number,
+  formData: subscriptionInsertTypeWithoutUserId
+) {
+  const session = await auth();
+  if (!session) {
+    throw new Error("You must be logged in to update a subscription");
+  }
+  if (!session.user) {
+    throw new Error("You must be logged in to update a subscription");
+  }
+  if (!session.user.id) {
+    throw new Error("You must be logged in to update a subscription");
+  }
+
+  await db
+    .update(subscriptions)
+    .set({ ...formData })
+    .where(eq(subscriptions.id, id));
 }
